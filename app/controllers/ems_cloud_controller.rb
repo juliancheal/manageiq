@@ -149,7 +149,15 @@ class EmsCloudController < ApplicationController
       zone = @ems.my_zone
     end
 
-    amqp_userid = @ems.has_authentication_type?(:amqp) ? @ems.authentication_userid(:amqp).to_s : ""
+    amqp_userid = ""
+    amqp_hostname =  ""
+    amqp_port =  ""
+
+    if @ems.has_authentication_type?(:amqp)
+      amqp_userid = @ems.has_authentication_type?(:amqp) ? @ems.authentication_userid(:amqp).to_s : ""
+      amqp_hostname = @ems.connections.amqp.endpoint.hostname
+      amqp_port = @ems.connections.amqp.endpoint.port
+    end
 
     if @ems.kind_of?(ManageIQ::Providers::Azure::CloudManager)
       azure_tenant_id = @ems.azure_tenant_id
@@ -162,10 +170,10 @@ class EmsCloudController < ApplicationController
                      :zone                            => zone,
                      :provider_id                     => @ems.provider_id ? @ems.provider_id : "",
                      :hostname                        => @ems.hostname,
-                     :default_hostname                => @ems.default_endpoint.hostname,
-                     # :amqp_hostname                   => @ems.hostname_with_role("amqp"),
-                     :default_api_port                => @ems.default_endpoint.port,
-                     # :amqp_api_port                   => @ems.port_with_role("amqp"),
+                     :default_hostname                => @ems.connections.default.endpoint.hostname,
+                     :amqp_hostname                   => amqp_hostname, # @ems.connections.amqp.endpoint.hostname,
+                     :default_api_port                => @ems.connections.default.endpoint.port,
+                     :amqp_api_port                   => amqp_port, # @ems.connections.amqp.endpoint.port,
                      :api_version                     => @ems.api_version ? @ems.api_version : "v2",
                      :default_security_protocol       => @ems.security_protocol ? @ems.security_protocol : 'ssl',
                      # :default_security_protocol       => @ems.default_endpoint.security_protocol ? @ems.default_endpoint.security_protocol : 'ssl',
