@@ -215,11 +215,17 @@ class EmsCloudController < ApplicationController
   def set_ems_record_vars(ems, mode = nil)
     ems.name            = params[:name].strip if params[:name]
     ems.provider_region = params[:provider_region]
-    ems.hostname        = params[:hostname].strip if params[:hostname]
-    ems.port            = params[:api_port].strip if params[:api_port]
     ems.api_version     = params[:api_version].strip if params[:api_version]
     ems.provider_id     = params[:provider_id]
     ems.zone            = Zone.find_by_name(params[:zone])
+
+    hostname = params[:default_hostname].strip if params[:default_hostname]
+    port = params[:default_api_port].strip if params[:default_api_port]
+    amqp_hostname = params[:amqp_hostname].strip if params[:amqp_hostname]
+    amqp_port = params[:amqp_api_port].strip if params[:amqp_api_port]
+
+    default_endpoint = {:role => :default, :hostname => hostname, :port => port}
+    amqp_endpoint = {:role => :amqp, :hostname => amqp_hostname, :port => amqp_port}
 
     if ems.kind_of?(ManageIQ::Providers::Google::CloudManager)
       ems.project = params[:project]
@@ -240,7 +246,19 @@ class EmsCloudController < ApplicationController
 
     ems.azure_tenant_id = params[:azure_tenant_id] if ems.kind_of?(ManageIQ::Providers::Azure::CloudManager)
 
-    ems.update_authentication(build_credentials(ems), :save => (mode != :validate))
+    # ems.update_authentication(build_credentials(ems), :save => (mode != :validate))
+    build_connection(ems, default_endpoint, amqp_endpoint)
+  end
+
+  def build_connection(ems, default_endpoint, amqp_endpoint)
+    authentications = build_credentials(ems)
+    default_authentication = authentications.delete(:default)
+    amqp_authentication = authentications.delete(:amqp)
+    default_authentication[:role] = :default
+    amqp_authentication[:role] = :amqp
+
+    ems.connections=([{:endpoint => default_endpoint, :authentication => default_authentication},
+                      {:endpoint => amqp_endpoint, :authentication => amqp_authentication}])
   end
 
   def build_credentials(ems)
