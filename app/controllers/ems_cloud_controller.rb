@@ -153,11 +153,13 @@ class EmsCloudController < ApplicationController
     amqp_hostname =  ""
     amqp_port =  ""
 
-    if @ems.has_authentication_type?(:amqp)
-      amqp_userid = @ems.has_authentication_type?(:amqp) ? @ems.authentication_userid(:amqp).to_s : ""
+    if @ems.connections.amqp.try(:endpoint)
       amqp_hostname = @ems.connections.amqp.endpoint.hostname
       amqp_port = @ems.connections.amqp.endpoint.port
-      amqp_security_protocol = @ems.connections.amqp.endpoint.security_protocol ? @ems.connections.amqp.endpoint.security_protocol : 'ssl'
+    end
+    if @ems.has_authentication_type?(:amqp)
+      amqp_userid = @ems.has_authentication_type?(:amqp) ? @ems.authentication_userid(:amqp).to_s : ""
+      # amqp_security_protocol = @ems.connections.amqp.endpoint.security_protocol ? @ems.connections.amqp.endpoint.security_protocol : 'ssl'
     end
 
     if @ems.kind_of?(ManageIQ::Providers::Azure::CloudManager)
@@ -232,9 +234,13 @@ class EmsCloudController < ApplicationController
     port = params[:default_api_port].strip if params[:default_api_port]
     amqp_hostname = params[:amqp_hostname].strip if params[:amqp_hostname]
     amqp_port = params[:amqp_api_port].strip if params[:amqp_api_port]
+    default_endpoint = {}
+    amqp_endpoint = {}
 
-    default_endpoint = {:role => :default, :hostname => hostname, :port => port}
-    amqp_endpoint = {:role => :amqp, :hostname => amqp_hostname, :port => amqp_port}
+    if ems.kind_of?(ManageIQ::Providers::Openstack::CloudManager)
+      default_endpoint = {:role => :default, :hostname => hostname, :port => port}
+      amqp_endpoint = {:role => :amqp, :hostname => amqp_hostname, :port => amqp_port}
+    end
 
     if ems.kind_of?(ManageIQ::Providers::Google::CloudManager)
       ems.project = params[:project]
@@ -262,9 +268,13 @@ class EmsCloudController < ApplicationController
   def build_connection(ems, default_endpoint, amqp_endpoint)
     authentications = build_credentials(ems)
     default_authentication = authentications.delete(:default)
-    amqp_authentication = authentications.delete(:amqp)
     default_authentication[:role] = :default
-    amqp_authentication[:role] = :amqp
+    amqp_authentication = {}
+
+    unless authentications[:amqp].nil?
+      amqp_authentication = authentications.delete(:amqp)
+      amqp_authentication[:role] = :amqp
+    end
 
     ems.connections=([{:endpoint => default_endpoint, :authentication => default_authentication},
                       {:endpoint => amqp_endpoint, :authentication => amqp_authentication}])
