@@ -157,6 +157,7 @@ class EmsCloudController < ApplicationController
       amqp_userid = @ems.has_authentication_type?(:amqp) ? @ems.authentication_userid(:amqp).to_s : ""
       amqp_hostname = @ems.connections.amqp.endpoint.hostname
       amqp_port = @ems.connections.amqp.endpoint.port
+      amqp_security_protocol = @ems.connections.amqp.endpoint.security_protocol ? @ems.connections.amqp.endpoint.security_protocol : 'ssl'
     end
 
     if @ems.kind_of?(ManageIQ::Providers::Azure::CloudManager)
@@ -176,8 +177,8 @@ class EmsCloudController < ApplicationController
                      :amqp_api_port                   => amqp_port, # @ems.connections.amqp.endpoint.port,
                      :api_version                     => @ems.api_version ? @ems.api_version : "v2",
                      :default_security_protocol       => @ems.security_protocol ? @ems.security_protocol : 'ssl',
-                     # :default_security_protocol       => @ems.default_endpoint.security_protocol ? @ems.default_endpoint.security_protocol : 'ssl',
-                     # :amqp_security_protocol          => @ems.security_protocol_with_role("amqp") ? @ems.security_protocol_with_role("amqp") : 'ssl',
+                    #  :default_security_protocol       => @ems.default_endpoint.security_protocol ? @ems.default_endpoint.security_protocol : 'ssl',
+                    #  :amqp_security_protocol          => amqp_security_protocol
                      :provider_region                 => @ems.provider_region,
                      :openstack_infra_providers_exist => retrieve_openstack_infra_providers.length > 0 ? true : false,
                      :default_userid                  => @ems.authentication_userid ? @ems.authentication_userid : "",
