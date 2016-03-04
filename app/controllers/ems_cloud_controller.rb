@@ -178,7 +178,8 @@ class EmsCloudController < ApplicationController
                      :default_api_port                => @ems.connections.default.endpoint.port,
                      :amqp_api_port                   => amqp_port, # @ems.connections.amqp.endpoint.port,
                      :api_version                     => @ems.api_version ? @ems.api_version : "v2",
-                     :default_security_protocol       => @ems.security_protocol ? @ems.security_protocol : 'ssl',
+                     :security_protocol               => @ems.security_protocol ? @ems.security_protocol : 'ssl',
+                     # TODO: Seperate Security Protocals
                     #  :default_security_protocol       => @ems.default_endpoint.security_protocol ? @ems.default_endpoint.security_protocol : 'ssl',
                     #  :amqp_security_protocol          => amqp_security_protocol
                      :provider_region                 => @ems.provider_region,
@@ -229,6 +230,7 @@ class EmsCloudController < ApplicationController
     ems.api_version     = params[:api_version].strip if params[:api_version]
     ems.provider_id     = params[:provider_id]
     ems.zone            = Zone.find_by_name(params[:zone])
+    ems.security_protocol = params[:security_protocol].strip if params[:security_protocol]
 
     hostname = params[:default_hostname].strip if params[:default_hostname]
     port = params[:default_api_port].strip if params[:default_api_port]
@@ -251,7 +253,7 @@ class EmsCloudController < ApplicationController
       ems.realm = params[:realm]
     elsif ems.supports_security_protocol?
       # TODO the behavior should be probably rewritten to support methods
-      ems.security_protocol = params[:security_protocol].strip if params[:security_protocol]
+      ems.security_protocol = params[:default_security_protocol].strip if params[:default_security_protocol]
     end
 
     if ems.kind_of?(ManageIQ::Providers::Vmware::InfraManager)
