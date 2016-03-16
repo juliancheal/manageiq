@@ -273,7 +273,7 @@ class EmsCloudController < ApplicationController
     default_authentication[:role] = :default
     amqp_authentication = {}
 
-    unless authentications[:amqp].nil?
+    if authentications[:amqp]
       amqp_authentication = authentications.delete(:amqp)
       amqp_authentication[:role] = :amqp
     end
