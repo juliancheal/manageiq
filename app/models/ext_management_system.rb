@@ -272,22 +272,29 @@ class ExtManagementSystem < ApplicationRecord
     end
   end
 
+  def connections
+    roles = endpoints.map(&:role)
+    options = {}
+
+    roles.each do |role|
+      conn = connection_by_role(role)
+      options[role] = conn
+    end
+
+    connections = OpenStruct.new(options)
+    connections.roles = roles
+    connections
+  end
+
   def connection_configuration
     roles = endpoints.map(&:role)
-    puts roles
-    # config = ConnectionConfiguration.configure({:endpoint => endpoint, :authentication => authentication})
-
-    # roles = endpoints.map(&:role)
-    # options = {}
-
-    # roles.each do |role|
-    #   conn = connection_by_role(role)
-    #   options[role] = conn
-    # end
-    #
-    # connections = OpenStruct.new(options)
-    # connections.roles = roles
-    # connections
+    endpoint = {}
+    authentication = {}
+    roles.each do |role|
+      endpoint[role] = endpoints.detect { |e| e.role == role }.attributes
+      authentication[role] = authentications.detect { |a| a.authtype == role }.attributes
+    end
+    config = ConnectionConfiguration.configure({:endpoint => endpoint, :authentication => authentication})
   end
 
   # Takes a hash of connection data
@@ -330,6 +337,7 @@ class ExtManagementSystem < ApplicationRecord
       auth = authentications.detect { |a| a.authtype == endpoint.role }
 
       options = {:endpoint => endpoint, :authentication => auth}
+      puts options
       OpenStruct.new(options)
     end
   end
