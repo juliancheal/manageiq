@@ -153,9 +153,9 @@ class EmsCloudController < ApplicationController
     amqp_hostname =  ""
     amqp_port =  ""
 
-    if @ems.connections.amqp.try(:endpoint)
-      amqp_hostname = @ems.connections.amqp.endpoint.hostname
-      amqp_port = @ems.connections.amqp.endpoint.port
+    if @ems.connection_configurations.amqp.try(:endpoint)
+      amqp_hostname = @ems.connection_configurations.amqp.endpoint.hostname
+      amqp_port = @ems.connection_configurations.amqp.endpoint.port
     end
     if @ems.has_authentication_type?(:amqp)
       amqp_userid = @ems.has_authentication_type?(:amqp) ? @ems.authentication_userid(:amqp).to_s : ""
@@ -173,9 +173,9 @@ class EmsCloudController < ApplicationController
                      :zone                            => zone,
                      :provider_id                     => @ems.provider_id ? @ems.provider_id : "",
                      :hostname                        => @ems.hostname,
-                     :default_hostname                => @ems.connections.default.endpoint.hostname,
+                     :default_hostname                => @ems.connection_configurations.default.endpoint.hostname,
                      :amqp_hostname                   => amqp_hostname, # @ems.connections.amqp.endpoint.hostname,
-                     :default_api_port                => @ems.connections.default.endpoint.port,
+                     :default_api_port                => @ems.connection_configurations.default.endpoint.port,
                      :amqp_api_port                   => amqp_port, # @ems.connections.amqp.endpoint.port,
                      :api_version                     => @ems.api_version ? @ems.api_version : "v2",
                      :security_protocol               => @ems.security_protocol ? @ems.security_protocol : 'ssl',
@@ -278,7 +278,7 @@ class EmsCloudController < ApplicationController
       amqp_authentication[:role] = :amqp
     end
 
-    ems.connections=([{:endpoint => default_endpoint, :authentication => default_authentication},
+    ems.connection_configurations=([{:endpoint => default_endpoint, :authentication => default_authentication},
                       {:endpoint => amqp_endpoint, :authentication => amqp_authentication}])
   end
 
