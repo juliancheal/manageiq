@@ -1,4 +1,4 @@
-- return if !%w(ems_cloud ems_infra).include?(controller_name)
+- return unless %w(ems_cloud ems_infra ems_container).include?(controller_name)
 
 - prefix ||= "default"
 

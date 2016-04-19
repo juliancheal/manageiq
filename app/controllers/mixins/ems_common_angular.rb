@@ -151,6 +151,8 @@ module Mixins
       metrics_userid = ""
       metrics_hostname = ""
       metrics_port = ""
+      hawkular_hostname = ""
+      hawkular_port = ""
 
       if @ems.connection_configurations.amqp.try(:endpoint)
         amqp_hostname = @ems.connection_configurations.amqp.endpoint.hostname
@@ -171,6 +173,11 @@ module Mixins
       end
       if @ems.has_authentication_type?(:metrics)
         metrics_userid = @ems.has_authentication_type?(:metrics) ? @ems.authentication_userid(:metrics).to_s : ""
+      end
+
+      if @ems.connection_configurations.hawkular.try(:endpoint)
+        hawkular_hostname = @ems.connection_configurations.hawkular.endpoint.hostname
+        hawkular_port = @ems.connection_configurations.hawkular.endpoint.port
       end
 
       @ems_types = Array(model.supported_types_and_descriptions_hash.invert).sort_by(&:first)
@@ -241,6 +248,23 @@ module Mixins
                        :host_default_vnc_port_end   => host_default_vnc_port_end ? host_default_vnc_port_end : "",
                        :ems_controller              => controller_name
       } if controller_name == "ems_infra"
+
+      render :json => {:name                      => @ems.name,
+                       :emstype                   => @ems.emstype,
+                       :zone                      => zone,
+                       :provider_id               => @ems.provider_id ? @ems.provider_id : "",
+                       :hostname                  => @ems.hostname,
+                       :default_hostname          => @ems.connection_configurations.default.endpoint.hostname,
+                       :hawkular_hostname         => hawkular_hostname,
+                       :default_api_port          => @ems.connection_configurations.default.endpoint.port,
+                       :hawkular_api_port         => hawkular_port,
+                       :api_version               => @ems.api_version ? @ems.api_version : "v2",
+                       :default_security_protocol => default_security_protocol,
+                       :provider_region           => @ems.provider_region,
+                       :default_userid            => @ems.authentication_userid ? @ems.authentication_userid : "",
+                       :service_account           => service_account ? service_account : "",
+                       :ems_controller            => controller_name
+      } if controller_name == "ems_container"
     end
 
     private ############################
@@ -268,10 +292,13 @@ module Mixins
       amqp_security_protocol = params[:amqp_security_protocol].strip if params[:amqp_security_protocol]
       metrics_hostname = params[:metrics_hostname].strip if params[:metrics_hostname]
       metrics_port = params[:metrics_api_port].strip if params[:metrics_api_port]
+      hawkular_hostname = params[:hawkular_hostname].strip if params[:hawkular_hostname]
+      hawkular_port = params[:hawkular_api_port].strip if params[:hawkular_api_port]
       default_endpoint = {}
       amqp_endpoint = {}
       ssh_keypair_endpoint = {}
       metrics_endpoint = {}
+      hawkular_endpoint = {}
 
       if ems.kind_of?(ManageIQ::Providers::Openstack::CloudManager)
         default_endpoint = {:role => :default, :hostname => hostname, :port => port, :security_protocol => ems.security_protocol}
@@ -309,36 +336,35 @@ module Mixins
         ems.subscription    = params[:subscription] unless params[:subscription].blank?
       end
 
-      build_connection(ems, default_endpoint, amqp_endpoint, ssh_keypair_endpoint, metrics_endpoint)
+      if ems.kind_of?(ManageIQ::Providers::ContainerManager)
+        default_endpoint = {:role => :default, :hostname => hostname, :port => port}
+        hawkular_endpoint = {:role => :hawkular, :hostname => hawkular_hostname, :port => hawkular_port}
+      end
+
+      endpoints = {:default     => default_endpoint,
+                   :amqp        => amqp_endpoint,
+                   :ssh_keypair => ssh_keypair_endpoint,
+                   :metrics     => metrics_endpoint,
+                   :hawkular    => hawkular_endpoint}
+
+      build_connection(ems, endpoints)
     end
 
-    def build_connection(ems, default_endpoint, amqp_endpoint, ssh_keypair_endpoint, metrics_endpoint)
+    def build_connection(ems, endpoints)
       authentications = build_credentials(ems)
-      default_authentication = authentications.delete(:default)
-      default_authentication[:role] = :default
-      amqp_authentication = {}
-      ssh_keypair_authentication = {}
-      metrics_authentication = {}
+      configurations = []
 
-      if authentications[:amqp]
-        amqp_authentication = authentications.delete(:amqp)
-        amqp_authentication[:role] = :amqp
+      [:default, :amqp, :ssh_keypair, :metrics, :hawkular].each do |role|
+        configurations << build_configuration(authentications, endpoints, role) if authentications[role]
       end
 
-      if authentications[:ssh_keypair]
-        ssh_keypair_authentication = authentications.delete(:ssh_keypair)
-        ssh_keypair_authentication[:role] = :ssh_keypair
-      end
+      ems.connection_configurations = configurations
+    end
 
-      if authentications[:metrics]
-        metrics_authentication = authentications.delete(:metrics)
-        metrics_authentication[:role] = :metrics
-      end
-
-      ems.connection_configurations=([{:endpoint => default_endpoint, :authentication => default_authentication},
-                                      {:endpoint => amqp_endpoint, :authentication => amqp_authentication},
-                                      {:endpoint => ssh_keypair_endpoint, :authentication => ssh_keypair_authentication},
-                                      {:endpoint => metrics_endpoint, :authentication => metrics_authentication}])
+    def build_configuration(authentications, endpoints, role)
+      authentication = authentications.delete(role)
+      authentication[:role] = role
+      {:endpoint => endpoints[role], :authentication => authentication}
     end
 
     def build_credentials(ems)
@@ -372,6 +398,11 @@ module Mixins
                          :expires       => credentials["expires"],
                          :userid        => auth["info"]["name"]}
         session[:oauth_response] = nil
+      end
+      if ems.kind_of?(ManageIQ::Providers::ContainerManager) &&
+         ems.supports_authentication?(:bearer) && params[:bearer_token]
+        creds[:bearer] = {:auth_key => params[:bearer_token], :userid => "_"}
+        creds[:hawkular] = {:auth_key => params[:bearer_token], :userid => "_"}
       end
       creds
     end
