@@ -16,7 +16,6 @@ class ManageIQ::Providers::AnsibleTower::ConfigurationManager::RefreshWorker::Pa
   end
 
   def inventory_groups
-    # FIXME: memoization  should not be needed.
     @inventory_groups ||= ManagerRefresh::InventoryCollection.new(
       ManageIQ::Providers::ConfigurationManager::InventoryRootGroup,
       :association => :inventory_root_groups,
@@ -37,8 +36,6 @@ class ManageIQ::Providers::AnsibleTower::ConfigurationManager::RefreshWorker::Pa
     ManagerRefresh::InventoryCollection.new(
       ManageIQ::Providers::AnsibleTower::ConfigurationManager::ConfiguredSystem,
       :association => :configured_systems,
-      # FIXME: array should not be needed
-      # FIXME: manager_ref should not be needed here
       :manager_ref => [:manager_ref],
       :parent      => ems,
     ).tap do |c|
