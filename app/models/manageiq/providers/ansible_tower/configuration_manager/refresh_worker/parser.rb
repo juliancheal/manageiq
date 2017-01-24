@@ -1,5 +1,5 @@
 class ManageIQ::Providers::AnsibleTower::ConfigurationManager::RefreshWorker::Parser
-  attr_accessor :inventory, :ems
+  attr_reader :inventory, :ems
 
   def initialize(ems, target, inventory)
     @ems    = ems
