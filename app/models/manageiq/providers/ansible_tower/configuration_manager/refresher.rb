@@ -10,7 +10,7 @@ module ManageIQ::Providers
           ems.save
         end
 
-        targets_with_data = targets.collect do |target|
+        targets.collect do |target|
           target_name = target.try(:name)
 
           _log.info "Collecting inventory for #{target.class} [#{target_name}] id: [#{target.id}]..."
@@ -20,8 +20,6 @@ module ManageIQ::Providers
           _log.info "Collecting inventory...Complete"
           [target, inventory]
         end
-
-        targets_with_data
       end
 
       def parse_targeted_inventory(ems, target, inventory)
