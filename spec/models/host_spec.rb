@@ -36,7 +36,7 @@ describe Host do
     expect(host.drift_states.size).to eq(1)
     expect(DriftState.count).to eq(1)
 
-    expect(host.drift_states.first.data).to eq({
+    expect(host.drift_states.first.data).to eq(
       :class                         => "ManageIQ::Providers::Vmware::InfraManager::Host",
       :id                            => host.id,
       :name                          => host.name,
@@ -55,7 +55,7 @@ describe Host do
       :tags                          => [],
       :users                         => [],
       :vms                           => [],
-    })
+    )
   end
 
   it "emits cluster policy event when the cluster changes" do
