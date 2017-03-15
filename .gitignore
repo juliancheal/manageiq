@@ -42,6 +42,7 @@ bin/*
 config/apache
 config/database.yml*
 config/cable.yml
+config/neo4j.yml
 config/vmdb.yml.db
 
 config/initializers/*.local.rb
