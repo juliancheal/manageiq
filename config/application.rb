@@ -1,5 +1,6 @@
 require File.expand_path('../boot', __FILE__)
 require File.expand_path('../preinitializer', __FILE__)
+
 require 'rails'
 require 'active_record/railtie'
 require 'action_controller/railtie'
@@ -99,6 +100,9 @@ module Vmdb
     config.autoload_paths << Rails.root.join("lib", "services")
 
     config.autoload_once_paths << Rails.root.join("lib", "vmdb", "console_methods.rb")
+
+    # ActiveJob load MiqQueueAdapter
+    config.active_job.queue_adapter = :miq_qu
 
     # config.eager_load_paths accepts an array of paths from which Rails will eager load on boot if cache classes is enabled.
     # Defaults to every folder in the app directory of the application.
